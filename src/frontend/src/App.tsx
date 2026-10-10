@@ -11,6 +11,7 @@ import { RemindersView } from './features/reminders/reminders-view';
 import { SettingsView } from './features/settings-privacy/settings-view';
 import { UploadModal } from './features/documents/upload-modal';
 import { LoginView } from './features/auth/login-view';
+import { ChatView } from './features/copilot/chat-view';
 import { CopilotFab } from './features/copilot/copilot-fab';
 import { useSession } from './features/auth/session-context';
 import { AppScreen, APP_ROUTES } from './app/routes';
@@ -20,18 +21,32 @@ import { ExtractedField, HealthFact, ReviewStatus } from './types/extraction';
 import { Prescription } from './types/prescription';
 import { MedicationReminder } from './types/reminder';
 
+const getInitialScreen = (): AppScreen => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const screenParam = params.get('screen') as AppScreen | null;
+    if (screenParam && screenParam in APP_ROUTES) return screenParam;
+
+    const hash = window.location.hash.replace(/^#\/?/, '') as AppScreen;
+    if (hash && hash in APP_ROUTES) return hash;
+
+    const path = window.location.pathname.replace(/^\//, '') as AppScreen;
+    if (path && path in APP_ROUTES) return path;
+  }
+  return 'dashboard';
+};
+
 /**
  * App.tsx — Top-level composition root.
  *
- * Change 1: The AI Health Copilot (ChatView) is no longer a primary nav
- *   item. It is surfaced via CopilotFab on all authenticated pages.
- * Change 3: AR Medicine Assistant is no longer a primary nav item. The
- *   "Open AR Medicine Assistant" button lives inside PrescriptionView.
- *   Clicking it navigates to 'ar-assistant' which renders the full scanner.
+ * In local development (import.meta.env.DEV), login sessions are automatically
+ * bypassed so developers can directly interact with the dashboard, copilot,
+ * TTS, STT, and all clinical tools without manual sign-in.
  */
 export const App: React.FC = () => {
   const { isAuthenticated } = useSession();
-  const [currentScreen, setCurrentScreen] = useState<AppScreen>('dashboard');
+
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>(getInitialScreen);
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
   const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
   const [healthFacts, setHealthFacts] = useState<HealthFact[]>([]);
@@ -171,12 +186,15 @@ export const App: React.FC = () => {
       case 'settings-privacy':
         return <SettingsView />;
 
-      // 'copilot' route kept in the type system for deep-link compatibility,
-      // but the primary entry point is now the floating FAB.
       case 'copilot':
         return (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-            <p>Use the <strong>Health Copilot</strong> button (bottom-right corner) to open the assistant.</p>
+          <div style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
+            <ChatView
+              onOpenDocument={(docId) => {
+                const d = documents.find(doc => doc.id === docId);
+                if (d) setSelectedDocForViewer(d);
+              }}
+            />
           </div>
         );
 

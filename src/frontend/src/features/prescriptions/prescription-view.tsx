@@ -1,39 +1,32 @@
 import React, { useState } from 'react';
+
 import { PrescriptionCard } from './prescription-card';
-import { Prescription, MedicationInstruction } from '../../types/prescription';
+
+import {
+  Prescription,
+  MedicationInstruction,
+} from '../../types/prescription';
+
 import { Alert } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
-import { Pill, Sparkles, ExternalLink, Info } from 'lucide-react';
 
-/**
- * UNITY INTEGRATION STATUS (Change 3):
- *
- * The Unity AR Medicine application is externally developed by Sai (Workstream H).
- * The unity_integration_guide.md file is currently EMPTY — no URL, endpoint,
- * callback protocol, or authentication mechanism has been documented.
- *
- * Implementation decision:
- *   - The "Open AR Medicine Assistant" button is present and functional.
- *   - It navigates to the internal AR scanner overlay (web-based OCR, not Unity).
- *   - A second "Open Unity AR (External)" button placeholder is shown with a
- *     clearly-configured integration point (UNITY_AR_URL constant below).
- *   - When UNITY_AR_URL is set (by the Unity team via environment variable or
- *     team agreement), the button will open the Unity experience in a new tab.
- *   - Until then, the button shows an honest "Integration Pending" state.
- *
- * MISSING DEPENDENCY: Sai / Workstream H must provide:
- *   - The deployed Unity AR URL (or launch mechanism).
- *   - Any authentication handshake required.
- *   - The agreed data callback / postMessage protocol and allowed origins.
- *   Set VITE_UNITY_AR_URL in the .env file once the contract is agreed.
- */
+import {
+  Pill,
+  Sparkles,
+  ExternalLink,
+  Info,
+  Volume2,
+} from 'lucide-react';
+
+import { generateSpeech } from '../../lib/tts';
+
+// Unity AR integration
 const UNITY_AR_URL = import.meta.env.VITE_UNITY_AR_URL || '';
 
 interface PrescriptionViewProps {
   prescriptions: Prescription[];
   onScheduleReminder?: (med: MedicationInstruction) => void;
   onVerifyMedication?: (medId: string) => void;
-  /** Navigates to the web-based AR scanner overlay */
   onLaunchARAssistant?: () => void;
 }
 
@@ -45,28 +38,214 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
 }) => {
   const [unityLaunched, setUnityLaunched] = useState(false);
 
-  const handleOpenUnity = () => {
-    if (!UNITY_AR_URL) return;
-    // Validate: only open URLs that are explicitly configured by the team
+  // TTS states
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [ttsError, setTtsError] = useState<string | null>(null);
+
+  // Generate speech for verified medications
+  const handleListenToInstructions = async () => {
+    setTtsError(null);
+    setAudioUrl(null);
+
+    setIsGeneratingAudio(true);
+
     try {
-      const parsed = new URL(UNITY_AR_URL);
-      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
-      window.open(UNITY_AR_URL, '_blank', 'noopener,noreferrer');
+      const verifiedInstructions = prescriptions
+        .flatMap((rx) => rx.medications)
+        .filter((med) => med.confirmed)
+        .map((med) => {
+          return `${med.name}, strength ${med.strength}, instructions: ${med.timing}`;
+        });
+
+      if (verifiedInstructions.length === 0) {
+        throw new Error(
+          'No verified medications available. Please verify a medication first.'
+        );
+      }
+
+      const text =
+        'CarePilot medication instructions. ' +
+        verifiedInstructions.join('. ');
+
+      const url = await generateSpeech(text);
+
+      if (!url) {
+        throw new Error('No audio URL was returned by the TTS service.');
+      }
+
+      setAudioUrl(url);
+    } catch (error) {
+      setTtsError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to generate speech. Please try again.'
+      );
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  // Open external Unity AR application
+  const handleOpenUnity = () => {
+    if (!UNITY_AR_URL) {
+      return;
+    }
+
+    try {
+      const parsedUrl = new URL(UNITY_AR_URL);
+
+      if (
+        parsedUrl.protocol !== 'https:' &&
+        parsedUrl.protocol !== 'http:'
+      ) {
+        setTtsError(null);
+        return;
+      }
+
+      window.open(
+        parsedUrl.href,
+        '_blank',
+        'noopener,noreferrer'
+      );
+
       setUnityLaunched(true);
     } catch {
-      // Invalid URL in env — do nothing
+      setUnityLaunched(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <Alert type="attention" title="Medication Safety Advisory">
-        Prescription schedules are extracted directly from doctor slips. Never alter, start, or stop prescription
-        dosages without qualified clinician oversight. Ambiguous handwritten entries are clearly marked for your confirmation.
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+      }}
+    >
+      {/* Medication safety advisory */}
+      <Alert
+        type="attention"
+        title="Medication Safety Advisory"
+      >
+        Prescription schedules are extracted from doctor slips.
+        Never change, start, or stop medication dosages without
+        qualified clinician guidance. Unclear instructions must
+        be verified before relying on them.
       </Alert>
 
-      {/* Change 3: AR Medicine Assistant launch controls */}
-      <div
+      {/* Text-to-Speech section */}
+      <section
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.875rem',
+          padding: '1.25rem',
+          backgroundColor: 'var(--color-surface)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Volume2 size={21} />
+          </div>
+
+          <div>
+            <h3
+              style={{
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: 'var(--color-text-main)',
+                margin: 0,
+              }}
+            >
+              Listen to Medication Instructions
+            </h3>
+
+            <p
+              style={{
+                fontSize: '0.8125rem',
+                color: 'var(--color-text-muted)',
+                marginTop: '0.25rem',
+              }}
+            >
+              Listen to your verified prescription details.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          id="listen-to-instructions"
+          onClick={handleListenToInstructions}
+          disabled={isGeneratingAudio}
+          leftIcon={<Volume2 size={16} />}
+        >
+          {isGeneratingAudio
+            ? 'Generating Audio...'
+            : 'Listen to Instructions'}
+        </Button>
+
+        {ttsError && (
+          <Alert
+            type="attention"
+            title="Speech Generation Failed"
+          >
+            {ttsError}
+          </Alert>
+        )}
+
+        {audioUrl && (
+          <div>
+            <p
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'var(--color-text-main)',
+                marginBottom: '0.5rem',
+              }}
+            >
+              Audio generated successfully
+            </p>
+
+            <audio
+              controls
+              src={audioUrl}
+              style={{
+                width: '100%',
+              }}
+              onError={() => {
+                setTtsError(
+                  'Audio playback failed. Please check the audio URL and try again.'
+                );
+              }}
+            >
+              Your browser does not support audio playback.
+            </audio>
+          </div>
+        )}
+      </section>
+
+      {/* AR Medicine Assistant */}
+      <section
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -80,7 +259,13 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
           boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
           <div
             style={{
               width: '38px',
@@ -95,18 +280,37 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
           >
             <Sparkles size={20} />
           </div>
+
           <div>
-            <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
+            <div
+              style={{
+                fontSize: '0.9375rem',
+                fontWeight: 600,
+                color: 'var(--color-text-main)',
+              }}
+            >
               AR Medicine Assistant
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-              Scan medicine packaging for verified drug information
+
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              Scan medicine packaging for verified drug information.
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-          {/* Web-based AR scanner — always available */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.625rem',
+            flexWrap: 'wrap',
+          }}
+        >
           {onLaunchARAssistant && (
             <Button
               id="open-ar-web-scanner"
@@ -119,7 +323,6 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
             </Button>
           )}
 
-          {/* Unity external launcher — shows status based on env variable */}
           {UNITY_AR_URL ? (
             <Button
               id="open-unity-ar"
@@ -144,19 +347,27 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
               }}
             >
               <Info size={13} />
-              Unity AR: Integration contract pending (set VITE_UNITY_AR_URL)
+              Unity AR integration pending.
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {unityLaunched && (
         <Alert type="info">
-          Unity AR application opened in a new tab. Return here when you are done — your prescription data is preserved.
+          Unity AR application launch was requested.
+          Return here when you are done.
         </Alert>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Prescription cards */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem',
+        }}
+      >
         {prescriptions.map((rx) => (
           <PrescriptionCard
             key={rx.id}
@@ -167,13 +378,42 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
         ))}
 
         {prescriptions.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3.5rem', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-border)' }}>
-            <Pill size={36} color="var(--color-text-muted)" style={{ margin: '0 auto 0.75rem' }} />
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '3.5rem',
+              backgroundColor: 'var(--color-surface)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px dashed var(--color-border)',
+            }}
+          >
+            <Pill
+              size={36}
+              color="var(--color-text-muted)"
+              style={{
+                margin: '0 auto 0.75rem',
+              }}
+            />
+
+            <h3
+              style={{
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                color: 'var(--color-text-main)',
+              }}
+            >
               No active prescriptions on file
             </h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-              Upload a doctor prescription scan or photo to extract medication timings and Telugu explanations.
+
+            <p
+              style={{
+                fontSize: '0.875rem',
+                color: 'var(--color-text-secondary)',
+                marginTop: '0.25rem',
+              }}
+            >
+              Upload a doctor prescription scan or photo to
+              extract medication timings and explanations.
             </p>
           </div>
         )}
@@ -181,3 +421,5 @@ export const PrescriptionView: React.FC<PrescriptionViewProps> = ({
     </div>
   );
 };
+
+export default PrescriptionView;

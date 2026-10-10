@@ -23,7 +23,7 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User>(DEMO_USERS[0]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(getStoredToken()));
   const [authToken, setAuthToken] = useState<string | null>(getStoredToken());
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 

@@ -7,7 +7,7 @@ import { ChatMessageItem } from './chat-message-item';
 import { CitationPopover } from './citation-popover';
 import { useCopilotChat } from '../../hooks/use-copilot-chat';
 import { CitationSource } from '../../types/chat';
-import { Send, Bot, RotateCcw, Sparkles } from 'lucide-react';
+import { Send, Bot, RotateCcw, Sparkles, Mic, MicOff } from 'lucide-react';
 
 interface ChatViewProps {
   initialQuery?: string;
@@ -20,6 +20,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 }) => {
   const { messages, isTyping, sendMessage, clearChat } = useCopilotChat();
   const [inputText, setInputText] = useState(initialQuery || '');
+  const [isListening, setIsListening] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<CitationSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,6 +33,39 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (!inputText.trim()) return;
     sendMessage(inputText);
     setInputText('');
+  };
+  const handleSpeechToText = () => {
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      alert('Speech recognition is not supported in this browser. Please use Google Chrome.');
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInputText((previous) =>
+        previous ? `${previous} ${transcript}` : transcript
+      );
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
   };
 
   const samplePrompts = [
@@ -218,6 +252,22 @@ export const ChatView: React.FC<ChatViewProps> = ({
               outline: 'none',
             }}
           />
+
+          {/* SPEECH-TO-TEXT MICROPHONE BUTTON */}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleSpeechToText}
+            disabled={isTyping}
+            title={isListening ? 'Listening...' : 'Speak your question'}
+            leftIcon={
+              isListening ? <MicOff size={18} /> : <Mic size={18} />
+            }
+          >
+            {isListening ? 'Listening...' : 'Speak'}
+          </Button>
+
+          {/* EXISTING ASK BUTTON */}
           <Button
             type="submit"
             variant="primary"
