@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { User } from '../../types/user';
 import { DEMO_USERS } from '../../lib/constants';
-import { logout as serviceLogout, getStoredToken } from './auth-service';
+import { logout as serviceLogout, getStoredToken, UserResponsePayload } from './auth-service';
 
 export type UserRole = 'candidate' | 'receptionist' | 'patient' | 'caregiver' | 'clinician_reviewer';
 
@@ -13,7 +13,7 @@ interface SessionContextType {
   /** Legacy demo login — kept for backward compat with existing ProfileSelector usage */
   loginAs: (user: User) => void;
   /** JWT-based login called after a successful auth-service response */
-  loginWithJwt: (userPayload: { id: string; name: string; email: string; role: string }, token?: string) => void;
+  loginWithJwt: (userPayload: UserResponsePayload, token?: string) => void;
   logout: () => void;
   availableUsers: User[];
   currentRole: string;
@@ -34,11 +34,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const loginWithJwt = useCallback(
-    (userPayload: { id: string; name: string; email: string; role: string }, token?: string) => {
+    (userPayload: UserResponsePayload, token?: string) => {
       // Map backend role names onto the User type's known roles
       const roleMap: Record<string, User['role']> = {
         candidate: 'patient',
-        receptionist: 'clinician_reviewer',
+        receptionist: 'receptionist',
         patient: 'patient',
         caregiver: 'caregiver',
         clinician_reviewer: 'clinician_reviewer',
@@ -49,6 +49,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         name: userPayload.name,
         email: userPayload.email,
         role: (roleMap[userPayload.role] as User['role']) || 'patient',
+        avatar: userPayload.avatar ?? undefined,
+        abhaId: userPayload.abhaId,
+        age: userPayload.age,
+        gender: (userPayload.gender as User['gender']) || undefined,
+        bloodGroup: userPayload.bloodGroup,
+        emergencyContact: userPayload.emergencyContact,
       };
 
       setCurrentUser(mappedUser);
