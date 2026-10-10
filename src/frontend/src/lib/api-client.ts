@@ -12,8 +12,7 @@ import {
   VERIFIED_MEDICINE_CATALOG,
   VerifiedMedicineInfo
 } from './constants';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+import { getApiBaseUrl, getStoredToken } from '../features/auth/auth-service';
 
 class ApiClient {
   private documents: MedicalDocument[] = [...INITIAL_DOCUMENTS];
@@ -22,10 +21,24 @@ class ApiClient {
   private prescriptions: Prescription[] = [...INITIAL_PRESCRIPTIONS];
   private reminders: MedicationReminder[] = [...INITIAL_REMINDERS];
 
+  private getAuthHeaders(): HeadersInit {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const token = getStoredToken();
+    if (token && !token.startsWith('DEMO_ONLY')) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   // Documents
   async getDocuments(): Promise<MedicalDocument[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/documents`);
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/documents`, {
+        headers: this.getAuthHeaders(),
+      });
       if (res.ok) return await res.json();
     } catch {
       // Fallback to local state
@@ -35,7 +48,10 @@ class ApiClient {
 
   async getDocument(id: string): Promise<MedicalDocument | undefined> {
     try {
-      const res = await fetch(`${API_BASE_URL}/documents/${id}`);
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/documents/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (res.ok) return await res.json();
     } catch {
       // Fallback
