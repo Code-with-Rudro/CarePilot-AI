@@ -26,8 +26,29 @@
  *   is active so nobody mistakes it for real authentication.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-const TOKEN_SESSION_KEY = 'carepilot_auth_token';
+export function getApiBaseUrl(): string {
+  const envUrl = (
+    (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL)) ||
+    ''
+  ).trim();
+
+  if (!envUrl) {
+    return '/api/v1';
+  }
+
+  // Strip trailing slashes
+  const stripped = envUrl.replace(/\/+$/, '');
+
+  // If provided as a base origin without /api/v1 (e.g. http://127.0.0.1:8000), append /api/v1
+  if (/^https?:\/\/[^/]+$/.test(stripped)) {
+    return `${stripped}/api/v1`;
+  }
+
+  return stripped;
+}
+
+export const API_BASE_URL = getApiBaseUrl();
+export const TOKEN_SESSION_KEY = 'carepilot_auth_token';
 
 export type LoginRole = 'candidate' | 'receptionist';
 
@@ -37,15 +58,23 @@ export interface AuthCredentials {
   role: LoginRole;
 }
 
+export interface UserResponsePayload {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  abhaId?: string;
+  age?: number;
+  gender?: string;
+  bloodGroup?: string;
+  emergencyContact?: string;
+  avatar?: string | null;
+}
+
 export interface AuthResult {
   success: boolean;
   token?: string;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  };
+  user?: UserResponsePayload;
   error?: string;
   isDemo?: boolean;
 }
@@ -53,7 +82,7 @@ export interface AuthResult {
 /**
  * Calls POST /api/v1/auth/login.
  * Returns the backend-issued JWT on success.
- * Falls back to demo mode when the backend is unavailable.
+ * Falls back to demo mode when the backend is completely unreachable.
  */
 export async function loginWithCredentials(creds: AuthCredentials): Promise<AuthResult> {
   // Validate inputs before network call
@@ -68,7 +97,8 @@ export async function loginWithCredentials(creds: AuthCredentials): Promise<Auth
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include', // include cookies if backend uses HttpOnly cookies
@@ -149,6 +179,35 @@ export function getStoredToken(): string | null {
 }
 
 /**
+ * Calls GET /api/v1/auth/me to fetch current authenticated user profile.
+ */
+export async function getCurrentUser(tokenOverride?: string): Promise<UserResponsePayload | null> {
+  const token = tokenOverride || getStoredToken();
+  if (!token || token.startsWith('DEMO_ONLY')) {
+    return null;
+  }
+
+  try {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: 'include',
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Clears the local session. Also calls the backend logout endpoint
  * to invalidate server-side sessions / revoke tokens.
  */
@@ -158,7 +217,8 @@ export async function logout(): Promise<void> {
 
   if (token && !token.startsWith('DEMO_ONLY')) {
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
+      const baseUrl = getApiBaseUrl();
+      await fetch(`${baseUrl}/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
