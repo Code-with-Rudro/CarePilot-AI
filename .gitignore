@@ -47,4 +47,6 @@ venv/
 *.sqlite3
 uploads/
 .pytest_cache/
+cloudflared.exe
+*.exe
 
