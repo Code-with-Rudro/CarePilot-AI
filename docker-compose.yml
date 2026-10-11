@@ -1,0 +1,90 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: carepilot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-carepilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-carepilot_secure_db_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-carepilot_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carepilot} -d ${POSTGRES_DB:-carepilot_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - carepilot-network
+
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: carepilot-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-carepilot}:${POSTGRES_PASSWORD:-carepilot_secure_db_pass}@db:5432/${POSTGRES_DB:-carepilot_db}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      SECRET_KEY: ${SECRET_KEY:-carepilot_jwt_production_secret_key_change_me}
+      PORT: 8000
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-["http://localhost", "http://localhost:80", "http://localhost:3000", "http://127.0.0.1", "http://127.0.0.1:80", "http://127.0.0.1:3000"]}
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      SMS_DEV_MODE: ${SMS_DEV_MODE:-false}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+      TWILIO_MESSAGING_SERVICE_SID: ${TWILIO_MESSAGING_SERVICE_SID:-}
+      TWILIO_TRIAL_MODE: ${TWILIO_TRIAL_MODE:-true}
+      TWILIO_TRIAL_TEMPLATE: ${TWILIO_TRIAL_TEMPLATE:-sms_appointment_reminders}
+      MURF_API_KEY: ${MURF_API_KEY:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - carepilot-network
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: carepilot-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - carepilot-network
+
+volumes:
+  postgres_data:
+    name: carepilot_postgres_data
+  uploads_data:
+    name: carepilot_uploads_data
+
+networks:
+  carepilot-network:
+    name: carepilot-network
+    driver: bridge

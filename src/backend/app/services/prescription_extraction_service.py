@@ -1,6 +1,8 @@
 import json
 import os
+import platform
 import re
+import shutil
 import subprocess
 import tempfile
 import uuid
@@ -148,18 +150,65 @@ KNOWN_MEDICINES = [
 ]
 
 
-def run_native_ocr_pass(image_path: str) -> str:
-    """Invokes the native Windows Media OCR engine on the provided image file."""
-    script_path = os.path.join(os.path.dirname(__file__), "win_ocr_helper.ps1")
-    if not os.path.exists(script_path) or not os.path.exists(image_path):
+def run_tesseract_ocr(image_path: str) -> str:
+    """Runs Tesseract OCR if available (standard in Linux Docker containers)."""
+    if not os.path.exists(image_path):
         return ""
+    # Try pytesseract first
     try:
-        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path, image_path]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=25)
-        return res.stdout.decode("utf-8", errors="replace").strip()
+        import pytesseract  # type: ignore
+        img = Image.open(image_path)
+        text = pytesseract.image_to_string(img)
+        if text and len(text.strip()) > 5:
+            return text.strip()
     except Exception as exc:
-        logger.warning(f"Native Windows OCR pass failed: {exc}")
+        logger.debug(f"pytesseract pass skipped or failed: {exc}")
+
+    # Fallback to direct tesseract CLI binary
+    if shutil.which("tesseract"):
+        try:
+            res = subprocess.run(
+                ["tesseract", image_path, "stdout"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=25,
+            )
+            out = res.stdout.decode("utf-8", errors="replace").strip()
+            if out:
+                return out
+        except Exception as exc:
+            logger.debug(f"Direct tesseract CLI execution failed: {exc}")
+
+    return ""
+
+
+def run_native_ocr_pass(image_path: str) -> str:
+    """Invokes the appropriate OCR engine based on platform:
+    - Windows: Windows Media OCR via PowerShell with Tesseract fallback
+    - Linux / Docker: Tesseract OCR (via pytesseract or system tesseract)
+    """
+    if not os.path.exists(image_path):
         return ""
+
+    # On Windows, try native Windows Media OCR first
+    if platform.system() == "Windows":
+        script_path = os.path.join(os.path.dirname(__file__), "win_ocr_helper.ps1")
+        if os.path.exists(script_path):
+            try:
+                cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path, image_path]
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=25)
+                text = res.stdout.decode("utf-8", errors="replace").strip()
+                if text:
+                    return text
+            except Exception as exc:
+                logger.warning(f"Native Windows OCR pass failed: {exc}")
+
+    # On Linux / Docker or if Windows OCR was empty, execute Tesseract OCR
+    tess_text = run_tesseract_ocr(image_path)
+    if tess_text:
+        return tess_text
+
+    return ""
 
 
 def extract_raw_text_from_file(file_content: bytes, filename: str, saved_path: Optional[str] = None) -> str:

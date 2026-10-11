@@ -1,0 +1,69 @@
+services:
+  # ----------------------------------------------------------------------------
+  # CarePilot-AI FastAPI Backend Container Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: carepilot-ai-backend
+    runtime: docker
+    dockerfilePath: src/backend/Dockerfile
+    dockerContext: src/backend
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: PORT
+        value: 8000
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: carepilot-postgres-db
+          property: connectionString
+      - key: BACKEND_CORS_ORIGINS
+        value: "*"
+      - key: SMS_PROVIDER
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TWILIO_MESSAGING_SERVICE_SID
+        sync: false
+      - key: TWILIO_TRIAL_MODE
+        value: "true"
+      - key: TWILIO_TRIAL_TEMPLATE
+        value: sms_appointment_reminders
+      - key: MURF_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+
+  # ----------------------------------------------------------------------------
+  # CarePilot-AI React Frontend Container Service (Nginx)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: carepilot-ai-frontend
+    runtime: docker
+    dockerfilePath: src/frontend/Dockerfile
+    dockerContext: src/frontend
+    region: oregon
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: carepilot-ai-backend
+          property: host
+
+databases:
+  # ----------------------------------------------------------------------------
+  # CarePilot-AI Managed PostgreSQL Database
+  # ----------------------------------------------------------------------------
+  - name: carepilot-postgres-db
+    databaseName: carepilot_db
+    user: carepilot
+    region: oregon

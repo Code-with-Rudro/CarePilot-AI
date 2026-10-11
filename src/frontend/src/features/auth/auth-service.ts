@@ -27,13 +27,18 @@
  */
 
 export function getApiBaseUrl(): string {
-  const envUrl = (
+  let envUrl = (
     (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL)) ||
     ''
   ).trim();
 
   if (!envUrl) {
     return '/api/v1';
+  }
+
+  // If provided without protocol (e.g. host property like hostname.onrender.com)
+  if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://') && !envUrl.startsWith('/')) {
+    envUrl = `https://${envUrl}`;
   }
 
   // Strip trailing slashes
