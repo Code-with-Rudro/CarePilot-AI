@@ -26,7 +26,14 @@ class ReminderService:
             scheduled_time=data.scheduledTime,
             slot=data.slot or "morning",
             timing_with_food=data.timingWithFood,
-            status=REMINDER_PENDING
+            status=REMINDER_PENDING,
+            dosage=data.dosage or data.strength,
+            frequency=data.frequency or "Once daily",
+            phone_number=data.phoneNumber,
+            recipient_name=data.recipientName,
+            sms_enabled=data.smsEnabled,
+            sms_consent=data.smsConsent,
+            sms_status="scheduled" if (data.smsEnabled and data.smsConsent) else "pending",
         )
         created = self.repo.create(reminder)
 
@@ -55,13 +62,42 @@ class ReminderService:
         if not reminder:
             return None
 
-        reminder.status = data.status
-        if data.status == REMINDER_TAKEN:
-            reminder.taken_at = data.takenAt or datetime.now().strftime("%I:%M %p")
+        if data.status:
+            reminder.status = data.status
+            if data.status == REMINDER_TAKEN:
+                reminder.taken_at = data.takenAt or datetime.now().strftime("%I:%M %p")
+
+        if data.dosage is not None:
+            reminder.dosage = data.dosage
+        if data.frequency is not None:
+            reminder.frequency = data.frequency
+        if data.phoneNumber is not None:
+            reminder.phone_number = data.phoneNumber
+        if data.recipientName is not None:
+            reminder.recipient_name = data.recipientName
+        if data.smsEnabled is not None:
+            reminder.sms_enabled = data.smsEnabled
+        if data.smsConsent is not None:
+            reminder.sms_consent = data.smsConsent
+        if data.smsStatus is not None:
+            reminder.sms_status = data.smsStatus
 
         self.db.commit()
         self.db.refresh(reminder)
         return reminder
+
+    def get_reminder(self, reminder_id: str, user_id: str) -> Optional[Reminder]:
+        return self.repo.get_user_reminder(reminder_id, user_id)
+
+    def get_all_scheduled_sms_reminders(self, user_id: Optional[str] = None) -> List[Reminder]:
+        query = self.db.query(Reminder).filter(
+            Reminder.sms_enabled == True,
+            Reminder.sms_consent == True,
+            Reminder.sms_status != "sent"
+        )
+        if user_id:
+            query = query.filter(Reminder.user_id == user_id)
+        return query.all()
 
     def delete_reminder(self, reminder_id: str, user_id: str) -> bool:
         reminder = self.repo.get_user_reminder(reminder_id, user_id)

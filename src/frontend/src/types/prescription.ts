@@ -9,6 +9,7 @@ export interface MedicationInstruction {
   duration: string; // 5 days
   instructionsEnglish: string;
   instructionsTelugu?: string;
+  instructionsHindi?: string;
   confidence: number;
   confirmed: boolean;
   warnings?: string[];

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSession } from './session-context';
 import { loginWithCredentials, LoginRole } from './auth-service';
 import { FolderHeart, Eye, EyeOff, Shield, Lock, Mail, AlertCircle, Loader2, Info } from 'lucide-react';
+import { ThemeToggle } from '../theme/theme-toggle';
 
 const ROLE_CONFIG = {
   candidate: {
@@ -70,8 +71,12 @@ export const LoginView: React.FC = () => {
         minHeight: '100vh',
         background: 'linear-gradient(135deg, var(--color-bg) 0%, var(--color-accent) 100%)',
         padding: '1.5rem',
+        position: 'relative',
       }}
     >
+      <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 10 }}>
+        <ThemeToggle />
+      </div>
       <div
         style={{
           background: 'var(--color-surface)',

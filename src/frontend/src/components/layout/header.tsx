@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu, Upload, User as UserIcon, Shield, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/use-auth';
+import { ThemeToggle } from '../../features/theme/theme-toggle';
 
 interface HeaderProps {
   pageTitle: string;
@@ -78,8 +79,11 @@ export const Header: React.FC<HeaderProps> = ({
           Upload Record
         </Button>
 
+        {/* Theme Mode Toggle */}
+        <ThemeToggle />
+
         {/* User Identity / Persona Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem', paddingLeft: '0.75rem', borderLeft: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.25rem', paddingLeft: '0.75rem', borderLeft: '1px solid var(--color-border)' }}>
           <div
             style={{
               width: '34px',

@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  FolderHeart, 
-  Pill, 
-  LineChart, 
-  Bell, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  FolderHeart,
+  Pill,
+  LineChart,
+  Bell,
+  ShieldCheck,
   HeartHandshake,
   LogOut
 } from 'lucide-react';
@@ -161,13 +161,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       backgroundColor: isActive
                         ? 'var(--color-accent)'
                         : item.highlight
-                        ? 'rgba(221, 244, 238, 0.4)'
-                        : 'transparent',
+                          ? 'var(--color-primary-light)'
+                          : 'transparent',
                       color: isActive
                         ? 'var(--color-primary-dark)'
                         : item.highlight
-                        ? 'var(--color-primary)'
-                        : 'var(--color-text-secondary)',
+                          ? 'var(--color-primary)'
+                          : 'var(--color-text-secondary)',
                       fontWeight: isActive ? 600 : 500,
                       fontSize: '0.875rem',
                       transition: 'all var(--transition-fast)',

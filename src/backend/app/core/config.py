@@ -7,6 +7,14 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+from pathlib import Path
+from dotenv import load_dotenv
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BACKEND_DIR / ".env")
+load_dotenv()
+
+
 class Settings(BaseSettings):
     # Application
     PROJECT_NAME: str = "CarePilot AI Backend"
@@ -66,8 +74,18 @@ class Settings(BaseSettings):
     UNITY_AR_URL: str = ""
     N8N_WEBHOOK_URL: str = ""
 
+    # SMS Reminders Gateway Configuration
+    SMS_PROVIDER: str = "mock"  # "mock" or "twilio"
+    SMS_DEV_MODE: bool = False   # When True, simulated delivery is performed (logged safely)
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+    TWILIO_MESSAGING_SERVICE_SID: str = ""
+    TWILIO_TRIAL_MODE: bool = True   # When True, uses Twilio trial predefined template identifier
+    TWILIO_TRIAL_TEMPLATE: str = "sms_appointment_reminders"  # Exact supported Twilio trial template identifier
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(str(BACKEND_DIR / ".env"), ".env"),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

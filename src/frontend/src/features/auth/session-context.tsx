@@ -15,6 +15,7 @@ interface SessionContextType {
   /** JWT-based login called after a successful auth-service response */
   loginWithJwt: (userPayload: UserResponsePayload, token?: string) => void;
   logout: () => void;
+  updateCurrentUser: (updates: Partial<User>) => void;
   availableUsers: User[];
   currentRole: string;
 }
@@ -23,7 +24,7 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User>(DEMO_USERS[0]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(getStoredToken()));
   const [authToken, setAuthToken] = useState<string | null>(getStoredToken());
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
@@ -76,6 +77,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await serviceLogout();
   }, []);
 
+  const updateCurrentUser = useCallback((updates: Partial<User>) => {
+    setCurrentUser(prev => ({ ...prev, ...updates }));
+  }, []);
+
   return (
     <SessionContext.Provider
       value={{
@@ -86,6 +91,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         loginAs,
         loginWithJwt,
         logout,
+        updateCurrentUser,
         availableUsers: DEMO_USERS,
         currentRole: currentUser.role,
       }}

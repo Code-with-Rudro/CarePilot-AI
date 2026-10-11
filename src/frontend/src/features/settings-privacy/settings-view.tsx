@@ -14,17 +14,43 @@ import {
   Check, 
   ExternalLink,
   Sliders,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Sun,
+  Phone,
+  Save
 } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { ThemeToggle } from '../theme/theme-toggle';
+import { apiClient } from '../../lib/api-client';
 
 export const SettingsView: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateCurrentUser } = useAuth();
   const [dataSharingEnabled, setDataSharingEnabled] = useState(false);
   const [retentionMonths, setRetentionMonths] = useState(12);
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+
+  const [mobileNumber, setMobileNumber] = useState(currentUser.emergencyContact || '');
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [savePhoneSuccess, setSavePhoneSuccess] = useState(false);
+
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileNumber.trim()) return;
+    setIsSavingPhone(true);
+    try {
+      await apiClient.updateUserProfile({ emergencyContact: mobileNumber.trim() });
+      updateCurrentUser({ emergencyContact: mobileNumber.trim() });
+      setSavePhoneSuccess(true);
+      setTimeout(() => setSavePhoneSuccess(false), 3500);
+    } catch (err) {
+      console.error('Failed to update phone number', err);
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
 
   const handleExportData = () => {
     setIsExporting(true);
@@ -75,6 +101,44 @@ export const SettingsView: React.FC = () => {
               <Check size={14} /> {currentUser.abhaId || 'Configured in Demo'}
             </span>
           </div>
+        </div>
+
+        {/* Mobile Number & SMS Alerts Configuration */}
+        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+          <form onSubmit={handleSavePhone} style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Phone size={16} color="var(--color-primary)" />
+              <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
+                Registered Mobile Number (SMS Reminders Gateway)
+              </label>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              This phone number will be pre-filled automatically for all your prescription medication SMS alerts and critical dosage reminders.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', maxWidth: '440px', marginTop: '0.25rem' }}>
+              <Input
+                placeholder="e.g. +91 98765 43210 or 9876543210"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                variant="primary"
+                isLoading={isSavingPhone}
+                disabled={isSavingPhone}
+                leftIcon={savePhoneSuccess ? <Check size={14} /> : <Save size={14} />}
+              >
+                {savePhoneSuccess ? 'Saved!' : 'Save Number'}
+              </Button>
+            </div>
+            {savePhoneSuccess && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Check size={13} /> Mobile number updated successfully for SMS reminders.
+              </span>
+            )}
+          </form>
         </div>
       </Card>
 
@@ -129,6 +193,17 @@ export const SettingsView: React.FC = () => {
             </select>
           </div>
         </div>
+      </Card>
+
+      {/* Appearance & Theme Mode */}
+      <Card style={{ padding: '1.5rem' }}>
+        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Sun size={18} color="var(--color-primary)" /> Appearance & Theme Mode
+        </h4>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+          Choose your interface preference. Switch between clean Light Mode, contrast-optimized Dark Mode, or match your device system settings.
+        </p>
+        <ThemeToggle variant="segmented" />
       </Card>
 
       {/* Export Records (FHIR-Inspired) */}

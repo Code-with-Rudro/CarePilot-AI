@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bot, User, FileText, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bot, User, FileText, AlertCircle, Image as ImageIcon, ZoomIn, X } from 'lucide-react';
 import { ChatMessage, CitationSource } from '../../types/chat';
 
 interface ChatMessageItemProps {
@@ -14,6 +14,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onSelectSuggestedQuestion,
 }) => {
   const isAssistant = message.role === 'assistant';
+  const [showImageZoom, setShowImageZoom] = useState(false);
 
   return (
     <div
@@ -67,6 +68,75 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             boxShadow: 'var(--shadow-sm)',
           }}
         >
+          {/* Uploaded Image Preview */}
+          {message.imageUrl && (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'inline-block',
+                  borderRadius: 'var(--radius-md)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-bg)',
+                  boxShadow: 'var(--shadow-sm)',
+                  cursor: 'pointer',
+                  maxWidth: '100%',
+                }}
+                onClick={() => setShowImageZoom(true)}
+                title="Click to view full image"
+              >
+                <img
+                  src={message.imageUrl}
+                  alt={message.imageName || 'Uploaded Medical Scan'}
+                  style={{
+                    maxHeight: '180px',
+                    maxWidth: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: 0,
+                    transition: 'opacity 0.2s',
+                    color: '#ffffff',
+                    gap: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+                >
+                  <ZoomIn size={16} /> Click to Enlarge
+                </div>
+              </div>
+
+              {message.imageName && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    marginTop: '0.375rem',
+                    fontSize: '0.6875rem',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  <ImageIcon size={12} />
+                  <span style={{ fontWeight: 600 }}>{message.imageName}</span>
+                  {message.imageSize && <span>({message.imageSize})</span>}
+                </div>
+              )}
+            </div>
+          )}
+
           {message.content}
 
           {message.insufficientEvidence && (
@@ -154,6 +224,79 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           </div>
         )}
       </div>
+
+      {/* Full Image Zoom Lightbox */}
+      {showImageZoom && message.imageUrl && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => setShowImageZoom(false)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              backgroundColor: 'var(--color-surface)',
+              borderRadius: 'var(--radius-lg)',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.75rem 1rem',
+                borderBottom: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-surface)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ImageIcon size={16} color="var(--color-primary)" />
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-main)' }}>
+                  {message.imageName || 'Medical Scan'}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowImageZoom(false)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0.25rem',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ overflow: 'auto', padding: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={message.imageUrl}
+                alt={message.imageName || 'Full preview'}
+                style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 'var(--radius-sm)' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,7 +4,7 @@ from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.database import get_db
 from app.models.user import User
 from app.schemas.common import MessageResponse
-from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserResponse
+from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserResponse, UserUpdate
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService
 
@@ -84,3 +84,28 @@ def logout(current_user: User = Depends(get_current_user), db: Session = Depends
 def get_me(current_user: User = Depends(get_current_user)):
     """Returns the authenticated user's profile."""
     return UserResponse.model_validate(current_user)
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Updates the authenticated user's profile and contact details."""
+    if user_update.name is not None:
+        current_user.name = user_update.name
+    if user_update.emergency_contact is not None:
+        current_user.emergency_contact = user_update.emergency_contact
+    if user_update.abha_id is not None:
+        current_user.abha_id = user_update.abha_id
+    if user_update.blood_group is not None:
+        current_user.blood_group = user_update.blood_group
+    if user_update.age is not None:
+        current_user.age = user_update.age
+    if user_update.gender is not None:
+        current_user.gender = user_update.gender
+    db.commit()
+    db.refresh(current_user)
+    return UserResponse.model_validate(current_user)
+

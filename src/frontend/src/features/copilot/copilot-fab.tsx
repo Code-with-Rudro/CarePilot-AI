@@ -223,7 +223,7 @@ export const CopilotFab: React.FC<CopilotFabProps> = ({ onOpenDocument }) => {
           </div>
 
           {/* Chat Content — reuses existing ChatView entirely */}
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <ChatView
               onOpenDocument={onOpenDocument}
             />
