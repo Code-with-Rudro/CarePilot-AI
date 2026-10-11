@@ -96,4 +96,11 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Ensure the configured upload directory exists.
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+
+
+upload_dir = settings.UPLOAD_DIR
+
+if os.environ.get("VERCEL"):
+    upload_dir = "/tmp/uploads"
+
+os.makedirs(upload_dir, exist_ok=True)
