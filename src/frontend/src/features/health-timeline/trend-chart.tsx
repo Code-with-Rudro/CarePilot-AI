@@ -98,7 +98,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({
                 cy={pt.y}
                 r="5"
                 fill={pt.item.isOutOfRange ? 'var(--color-critical)' : 'var(--color-primary)'}
-                stroke="#ffffff"
+                stroke="var(--color-surface)"
                 strokeWidth="2"
               />
               <text

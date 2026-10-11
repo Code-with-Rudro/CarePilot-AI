@@ -1,5 +1,8 @@
 :root {
-  /* Color Palette per DESIGN.md */
+  /* ==========================================================================
+     LIGHT MODE (Default)
+     Clean white cards, deep legible text, signature CarePilot teal palette
+     ========================================================================== */
   --color-primary: #176B66;
   --color-primary-dark: #10514E;
   --color-primary-light: rgba(23, 107, 102, 0.12);
@@ -34,7 +37,7 @@
   --radius-xl: 18px;
   --radius-full: 9999px;
 
-  /* Shadows */
+  /* Shadows (Light Mode) */
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
   --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.06), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
   --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
@@ -43,6 +46,43 @@
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   DARK MODE
+   Deep charcoal page background (#0F171A), elevated dark panels (#182327),
+   lively high-contrast teal, readable text, accessible status alerts & shadows
+   ========================================================================== */
+[data-theme='dark'] {
+  --color-primary: #2CA59C;
+  --color-primary-dark: #4FD1C5;
+  --color-primary-light: rgba(44, 165, 156, 0.22);
+  --color-accent: #173836;
+  --color-accent-hover: #1E4945;
+  --color-bg: #0F171A;
+  --color-surface: #182327;
+  --color-surface-hover: #1F2D32;
+  --color-border: #28393F;
+  --color-border-subtle: #1F2C31;
+  
+  --color-text-main: #F1F6F7;
+  --color-text-secondary: #A0B3B6;
+  --color-text-muted: #6E8387;
+  
+  --color-success: #34D399;
+  --color-success-bg: #0C3322;
+  --color-attention: #FBBF24;
+  --color-attention-bg: #3B2A08;
+  --color-critical: #F87171;
+  --color-critical-bg: #3E1616;
+  --color-info: #60A5FA;
+  --color-info-bg: #122847;
+
+  /* Shadows (Dark Mode) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.55), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 14px 20px -4px rgba(0, 0, 0, 0.65), 0 4px 6px -2px rgba(0, 0, 0, 0.45);
+  --shadow-dropdown: 0 12px 28px -4px rgba(0, 0, 0, 0.85);
 }
 
 @media (prefers-reduced-motion: reduce) {

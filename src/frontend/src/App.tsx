@@ -44,7 +44,7 @@ const getInitialScreen = (): AppScreen => {
  * TTS, STT, and all clinical tools without manual sign-in.
  */
 export const App: React.FC = () => {
-  const { isAuthenticated } = useSession();
+  const { currentUser, isAuthenticated } = useSession();
 
   const [currentScreen, setCurrentScreen] = useState<AppScreen>(getInitialScreen);
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
@@ -96,15 +96,40 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleCreateReminder = async (name: string, strength: string, time: string, foodTiming: string) => {
+  const handleCreateReminder = async (
+    name: string,
+    strength: string,
+    time: string,
+    foodTiming: string,
+    dosage?: string,
+    frequency?: string,
+    phoneNumber?: string,
+    smsEnabled?: boolean,
+    smsConsent?: boolean
+  ) => {
     const newRem = await apiClient.createReminder({
       medicationName: name,
       strength,
       scheduledTime: time,
       slot: 'morning',
       timingWithFood: foodTiming,
+      dosage: dosage || strength,
+      frequency: frequency || 'Once daily',
+      phoneNumber: phoneNumber || currentUser?.emergencyContact || '+91 98765 43210',
+      recipientName: currentUser?.name || 'Valued Patient',
+      smsEnabled: smsEnabled ?? true,
+      smsConsent: smsConsent ?? false,
     });
     setReminders(prev => [...prev, newRem]);
+  };
+
+  const handleDeleteReminder = async (id: string) => {
+    try {
+      await apiClient.deleteReminder(id);
+      setReminders(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      console.error('Failed to delete reminder', err);
+    }
   };
 
   const handleVerifyMedication = (medId: string) => {
@@ -112,6 +137,17 @@ export const App: React.FC = () => {
       ...rx,
       medications: rx.medications.map(m => m.id === medId ? { ...m, confirmed: true } : m),
     })));
+  };
+
+  const handleDeletePrescription = async (rxId: string) => {
+    await apiClient.deletePrescription(rxId);
+    setPrescriptions((prev) => prev.filter((rx) => rx.id !== rxId));
+    try {
+      const docs = await apiClient.getDocuments();
+      setDocuments(docs);
+    } catch {
+      // ignore
+    }
   };
 
   const renderActiveScreen = () => {
@@ -154,10 +190,40 @@ export const App: React.FC = () => {
           <PrescriptionView
             prescriptions={prescriptions}
             onScheduleReminder={(med) => {
-              handleCreateReminder(med.name, med.strength, '08:00 AM', med.timing);
+              handleCreateReminder(
+                med.name,
+                med.strength,
+                '08:00 AM',
+                med.timing,
+                med.dosage || med.strength,
+                med.frequency || 'Once daily',
+                currentUser?.emergencyContact || '+91 98765 43210',
+                true,
+                true
+              );
               setCurrentScreen('reminders');
             }}
             onVerifyMedication={handleVerifyMedication}
+            onUpdateMedication={async (rxId, medId, updates) => {
+              await apiClient.updateMedication(rxId, medId, updates);
+              setPrescriptions((prev) =>
+                prev.map((rx) =>
+                  rx.id === rxId
+                    ? {
+                        ...rx,
+                        medications: rx.medications.map((m) =>
+                          m.id === medId ? { ...m, ...updates } : m
+                        ),
+                      }
+                    : rx
+                )
+              );
+            }}
+            onDeletePrescription={handleDeletePrescription}
+            onUploadPrescription={async (file) => {
+              const newRx = await apiClient.uploadPrescriptionImage(file);
+              setPrescriptions((prev) => [newRx, ...prev]);
+            }}
             onLaunchARAssistant={() => setCurrentScreen('ar-assistant')}
           />
         );
@@ -176,6 +242,7 @@ export const App: React.FC = () => {
           <RemindersView
             reminders={reminders}
             onUpdateStatus={handleUpdateReminder}
+            onDeleteReminder={handleDeleteReminder}
             onCreateReminder={handleCreateReminder}
           />
         );

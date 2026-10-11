@@ -254,55 +254,8 @@ def seed_database(db: Session):
         db.add(ft)
     db.commit()
 
-    # 5. Create Prescriptions
-    rx = Prescription(
-        id="rx-001",
-        document_id=doc2.id,
-        user_id=rudro.id,
-        prescribed_by="Dr. K. Srinivas (Care Hospitals)",
-        prescribed_date="2026-10-09",
-        diagnosis="Essential Hypertension & Acid Peptic Disorder",
-        status="active"
-    )
-    db.add(rx)
-    db.commit()
-
-    med1 = MedicationInstruction(
-        id="med-001",
-        prescription_id=rx.id,
-        name="Metoprolol Tartrate",
-        strength="25mg",
-        dosage="1 tablet",
-        route="Oral",
-        frequency="Once daily (1-0-0)",
-        timing="Morning after breakfast",
-        duration="30 days",
-        instructions_english="Take 1 tablet every morning after breakfast. Do not stop abruptly without clinician oversight.",
-        instructions_telugu="ప్రతిరోజూ ఉదయం అల్పాహారం తర్వాత 1 టాబ్లెట్ వేసుకోండి. వైద్యుడి సలహా లేకుండా అకస్మాత్తుగా ఆపవద్దు.",
-        confidence=0.95,
-        confirmed=True,
-        warnings_json=json.dumps(["May cause mild dizziness when standing quickly."])
-    )
-    db.add(med1)
-
-    med2 = MedicationInstruction(
-        id="med-002",
-        prescription_id=rx.id,
-        name="Pantoprazole",
-        strength="40mg",
-        dosage="1 tablet",
-        route="Oral",
-        frequency="Once daily (1-0-0)",
-        timing="Morning 30 mins before breakfast",
-        duration="15 days",
-        instructions_english="Take 1 tablet in the morning 30 minutes before breakfast.",
-        instructions_telugu="ఉదయం అల్పాహారానికి 30 నిమిషాల ముందు 1 టాబ్లెట్ వేసుకోండి.",
-        confidence=0.72,
-        confirmed=False,
-        warnings_json=json.dumps(["Handwritten strength requires verification with pharmacy."])
-    )
-    db.add(med2)
-    db.commit()
+    # 5. Prescriptions are intentionally not seeded so user starts with a clean empty state.
+    # Prescriptions will be populated dynamically when a user uploads a prescription image.
 
     # 6. Create Initial Reminders
     rem1 = Reminder(

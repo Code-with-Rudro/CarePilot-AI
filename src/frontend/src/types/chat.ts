@@ -14,6 +14,9 @@ export interface ChatMessage {
   insufficientEvidence?: boolean;
   disclaimer?: string;
   suggestedQuestions?: string[];
+  imageUrl?: string;
+  imageName?: string;
+  imageSize?: string;
 }
 
 export interface Conversation {

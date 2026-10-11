@@ -50,6 +50,41 @@ export const useCopilotChat = () => {
     }
   };
 
+  const uploadAndExtractImage = async (file: File, prompt?: string) => {
+    const objectUrl = URL.createObjectURL(file);
+    const sizeStr = file.size < 1024 * 1024
+      ? `${(file.size / 1024).toFixed(1)} KB`
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
+    const userMessage: ChatMessage = {
+      id: `user-upload-${Date.now()}`,
+      role: 'user',
+      content: prompt?.trim() || `Uploaded medical document: ${file.name}`,
+      imageUrl: objectUrl,
+      imageName: file.name,
+      imageSize: sizeStr,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
+
+    try {
+      const response = await apiClient.extractImageInCopilot(file, prompt);
+      setMessages(prev => [...prev, response]);
+    } catch {
+      const errorMsg: ChatMessage = {
+        id: `err-${Date.now()}`,
+        role: 'assistant',
+        content: `I encountered an issue processing **${file.name}**. Please ensure the image is clear and try uploading again.`,
+        timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const clearChat = () => {
     setMessages(INITIAL_MESSAGES);
   };
@@ -58,6 +93,7 @@ export const useCopilotChat = () => {
     messages,
     isTyping,
     sendMessage,
+    uploadAndExtractImage,
     clearChat,
     activeCitation,
     setActiveCitation,

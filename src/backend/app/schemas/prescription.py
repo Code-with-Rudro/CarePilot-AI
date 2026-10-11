@@ -2,6 +2,17 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class MedicationInstructionUpdate(BaseModel):
+    name: Optional[str] = None
+    strength: Optional[str] = None
+    dosage: Optional[str] = None
+    route: Optional[str] = None
+    frequency: Optional[str] = None
+    timing: Optional[str] = None
+    duration: Optional[str] = None
+    confirmed: Optional[bool] = None
+
+
 class MedicationInstructionResponse(BaseModel):
     id: str
     name: str
@@ -13,6 +24,7 @@ class MedicationInstructionResponse(BaseModel):
     duration: str
     instructionsEnglish: str = Field(..., validation_alias="instructions_english")
     instructionsTelugu: Optional[str] = Field(None, validation_alias="instructions_telugu")
+    instructionsHindi: Optional[str] = Field(None, validation_alias="instructions_hindi")
     confidence: float
     confirmed: bool
     warnings: Optional[List[str]] = None

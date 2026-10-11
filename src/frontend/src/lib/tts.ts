@@ -5,9 +5,20 @@ interface TTSResponse {
     audio_url: string;
 }
 
+export type TTSLanguage = 'english' | 'telugu' | 'hindi';
+
+// Verified Murf AI voices:
+// - English & Telugu (multilingual Gen2): en-US-miles
+// - Hindi (native Hindi India): hi-IN-shweta
+export const TTS_VOICES: Record<TTSLanguage, string> = {
+    english: 'en-US-miles',
+    telugu: 'en-US-miles',
+    hindi: 'hi-IN-shweta',
+};
+
 export async function generateSpeech(
     text: string,
-    voiceId = 'en-US-natalie'
+    voiceId: string = TTS_VOICES.english
 ): Promise<string> {
     if (!text.trim()) {
         throw new Error('No prescription instructions available.');

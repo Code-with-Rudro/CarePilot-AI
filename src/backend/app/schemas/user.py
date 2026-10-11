@@ -28,6 +28,17 @@ class UserCreate(BaseModel):
     emergency_contact: Optional[str] = None
 
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    emergency_contact: Optional[str] = Field(None, validation_alias="emergencyContact")
+    abha_id: Optional[str] = Field(None, validation_alias="abhaId")
+    blood_group: Optional[str] = Field(None, validation_alias="bloodGroup")
+    age: Optional[int] = None
+    gender: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)

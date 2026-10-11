@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import logger
+from app.db.migrate_schema import migrate_schema
 from app.db.seed import seed_database
 from app.db.session import SessionLocal, engine
 from app.models.base import Base
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):
     # Startup: create tables and seed default demonstration records
     logger.info("Initializing CarePilot AI database schema...")
     Base.metadata.create_all(bind=engine)
+    migrate_schema(engine)
     db = SessionLocal()
     try:
         seed_database(db)

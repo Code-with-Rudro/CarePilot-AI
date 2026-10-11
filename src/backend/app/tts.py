@@ -15,7 +15,7 @@ MURF_API_URL = "https://api.murf.ai/v1/speech/generate"
 
 class TTSRequest(BaseModel):
     text: str = Field(min_length=1, max_length=3000)
-    voice_id: str = "en-US-natalie"
+    voice_id: str = "en-US-miles"
 
 
 @router.get("/health")
